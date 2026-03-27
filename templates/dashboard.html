@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShadowGuard — Live Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d0f14;
+  --bg2: #141720;
+  --bg3: #1c2030;
+  --border: rgba(255,255,255,0.07);
+  --text: #e2e4ed;
+  --muted: #6b7280;
+  --accent: #4f8ef7;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --purple: #8b5cf6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:1px;color:var(--accent)}
+.logo-icon{width:30px;height:30px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.status-label{font-size:12px;color:var(--success);display:flex;align-items:center;gap:6px}
+
+/* Grid layout */
+.main{display:grid;grid-template-columns:280px 1fr;grid-template-rows:auto 1fr;height:calc(100vh - 57px);overflow:hidden}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:16px}
+.content{overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+
+/* Stat cards */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.stat-card .label{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.stat-card .value{font-size:26px;font-weight:700;line-height:1}
+.stat-card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-card.danger .value{color:var(--danger)}
+.stat-card.success .value{color:var(--success)}
+.stat-card.warn .value{color:var(--warn)}
+.stat-card.accent .value{color:var(--accent)}
+
+/* Charts row */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.chart-title{font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.chart-wrap{position:relative;height:160px}
+
+/* Log feed */
+.log-feed{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;flex:1;min-height:0}
+.log-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.log-title{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.log-list{overflow-y:auto;max-height:340px}
+.log-entry{display:grid;grid-template-columns:140px 70px 60px 80px 1fr;gap:8px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px;transition:background 0.2s}
+.log-entry:hover{background:var(--bg3)}
+.log-entry.blocked{border-left:3px solid var(--danger)}
+.log-entry.allowed{border-left:3px solid var(--success)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px}
+.badge.block{background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)}
+.badge.allow{background:rgba(34,197,94,0.15);color:var(--success);border:1px solid rgba(34,197,94,0.3)}
+.risk-bar-wrap{background:rgba(255,255,255,0.05);border-radius:3px;height:4px;width:100%}
+.risk-bar{height:4px;border-radius:3px;transition:width 0.4s}
+.payload-cell{color:var(--muted);font-family:'Courier New',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Sidebar */
+.sidebar-section{margin-bottom:20px}
+.sidebar-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.attack-type-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.attack-type-row:last-child{border-bottom:none}
+.type-bar-bg{background:rgba(255,255,255,0.05);border-radius:2px;height:3px;width:60px;margin-top:3px}
+.type-bar-fill{height:3px;border-radius:2px;background:var(--accent)}
+
+/* Model info box */
+.model-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px}
+.model-box .key{color:var(--muted);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.model-box .val{color:var(--accent);margin-bottom:8px}
+
+/* Live ticker */
+.ticker{font-size:10px;color:var(--muted);padding:8px 16px;background:var(--bg3);border-top:1px solid var(--border);display:flex;gap:24px}
+
+/* Severity badges */
+.sev-Critical{color:#ff3b3b;font-size:10px}
+.sev-High{color:#f97316;font-size:10px}
+.sev-Medium{color:var(--warn);font-size:10px}
+.sev-Safe{color:var(--success);font-size:10px}
+
+/* Responsive */
+@media(max-width:900px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto}
+  .sidebar{display:none}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .charts-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    SHADOWGUARD
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;font-size:12px;color:var(--muted)">
+    <span id="model-name">Loading model...</span>
+    <div class="status-label"><div class="status-dot"></div> OPERATIONAL</div>
+    <span id="clock">00:00:00</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Model Info</div>
+      <div class="model-box">
+        <div class="key">Algorithm</div>
+        <div class="val" id="sb-model">—</div>
+        <div class="key">F1 Score</div>
+        <div class="val" id="sb-f1">—</div>
+        <div class="key">Detection Threshold</div>
+        <div class="val">75%</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Top Attack Types</div>
+      <div id="attack-types-list">
+        <div style="color:var(--muted);font-size:12px">No attacks yet</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Quick Test</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="quickTest('sqli')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">SQL Injection</button>
+        <button onclick="quickTest('xss')" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--warn);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">XSS Attack</button>
+        <button onclick="quickTest('path')" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);color:var(--purple);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Path Traversal</button>
+        <button onclick="quickTest('cmd')" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);color:var(--accent);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Command Injection</button>
+        <button onclick="quickTest('safe')" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--success);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Safe Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card accent">
+        <div class="label">Total Requests</div>
+        <div class="value" id="stat-total">0</div>
+        <div class="sub">Since startup</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="label">Blocked</div>
+        <div class="value" id="stat-blocked">0</div>
+        <div class="sub" id="stat-block-rate">0% block rate</div>
+      </div>
+      <div class="stat-card success">
+        <div class="label">Allowed</div>
+        <div class="value" id="stat-allowed">0</div>
+        <div class="sub">Safe requests</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">Avg Latency</div>
+        <div class="value" id="stat-latency">—</div>
+        <div class="sub">ms per request</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Requests over time</div>
+        <div class="chart-wrap"><canvas id="timeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Attack type breakdown</div>
+        <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Log Feed -->
+    <div class="log-feed">
+      <div class="log-header">
+        <span class="log-title">Live Request Feed</span>
+        <span style="font-size:11px;color:var(--muted)">Auto-refreshing</span>
+      </div>
+      <div class="log-list" id="log-list">
+        <div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">
+          Waiting for requests... Use the Quick Test panel or send traffic to /api/analyze
+        </div>
+      </div>
+      <div class="ticker">
+        <span>WAF Engine: ML + OWASP Regex Hybrid</span>
+        <span>Threshold: 75%</span>
+        <span id="ticker-time">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const PAYLOADS = {
+  sqli: ["' OR '1'='1", "1' UNION SELECT username,password FROM users--", "admin'--", "1'; DROP TABLE users--"],
+  xss:  ["<script>alert('XSS')<\/script>", "<img src=x onerror=alert(1)>", "javascript:alert(document.cookie)"],
+  path: ["../../etc/passwd", "..\\..\\windows\\system32\\cmd.exe", "%2e%2e%2fetc%2fpasswd"],
+  cmd:  ["; rm -rf /", "| cat /etc/passwd && id", "`whoami`", "$(id)"],
+  safe: ["search=python+tutorial", "page=1&limit=20", "user=alice&action=view", "product_id=42&qty=1"],
+};
+
+const chartDefaults = {responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}
+};
+
+const timeCtx = document.getElementById('timeChart').getContext('2d');
+const timeChart = new Chart(timeCtx, {
+  type:'line', data:{labels:[],datasets:[
+    {label:'Blocked',data:[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.1)',tension:0.4,fill:true,pointRadius:0},
+    {label:'Allowed',data:[],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',tension:0.4,fill:true,pointRadius:0},
+  ]}, options:{...chartDefaults, plugins:{legend:{display:true,labels:{color:'#6b7280',font:{size:10},boxWidth:10}}}}
+});
+
+const typeCtx = document.getElementById('typeChart').getContext('2d');
+const typeChart = new Chart(typeCtx, {
+  type:'doughnut', data:{labels:[],datasets:[{data:[],
+    backgroundColor:['#ef4444','#f59e0b','#8b5cf6','#4f8ef7','#22c55e'],
+    borderWidth:0,hoverBorderWidth:2,hoverBorderColor:'rgba(255,255,255,0.3)'
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'right',labels:{color:'#6b7280',font:{size:10},boxWidth:10,padding:8}}}}
+});
+
+// Update clock
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString();
+  document.getElementById('ticker-time').textContent='Last update: '+n.toLocaleTimeString();
+},1000);
+
+async function fetchStats(){
+  try{
+    const r=await fetch('/api/stats');
+    const s=await r.json();
+    document.getElementById('stat-total').textContent=s.total||0;
+    document.getElementById('stat-blocked').textContent=s.blocked||0;
+    document.getElementById('stat-allowed').textContent=s.allowed||0;
+    document.getElementById('stat-block-rate').textContent=(s.block_rate||0).toFixed(1)+'% block rate';
+    if(s.model_info){
+      document.getElementById('sb-model').textContent=s.model_info.name||'—';
+      document.getElementById('sb-f1').textContent=s.model_info.f1||'—';
+      document.getElementById('model-name').textContent='Model: '+s.model_info.name;
+    }
+    // Attack types sidebar
+    if(s.top_attack_types){
+      const maxV=Math.max(...Object.values(s.top_attack_types),1);
+      document.getElementById('attack-types-list').innerHTML=Object.entries(s.top_attack_types)
+        .map(([t,c])=>`<div class="attack-type-row">
+          <div>
+            <div>${t}</div>
+            <div class="type-bar-bg"><div class="type-bar-fill" style="width:${(c/maxV*60).toFixed(0)}px"></div></div>
+          </div>
+          <span style="color:var(--danger);font-size:12px">${c}</span>
+        </div>`).join('');
+    }
+    // Update type chart
+    if(s.top_attack_types && Object.keys(s.top_attack_types).length){
+      const labels=Object.keys(s.top_attack_types);
+      const vals=Object.values(s.top_attack_types);
+      typeChart.data.labels=labels;
+      typeChart.data.datasets[0].data=vals;
+      typeChart.update('none');
+    }
+  }catch(e){console.error('stats',e);}
+}
+
+let prevCount=0;
+async function fetchLogs(){
+  try{
+    const r=await fetch('/api/logs?n=50');
+    const logs=await r.json();
+    // Update time series chart
+    const now=new Date().toLocaleTimeString();
+    const blocked=logs.filter(l=>l.action==='BLOCKED').length;
+    const allowed=logs.filter(l=>l.action==='ALLOWED').length;
+    if(timeChart.data.labels.length>20){timeChart.data.labels.shift();timeChart.data.datasets[0].data.shift();timeChart.data.datasets[1].data.shift();}
+    timeChart.data.labels.push(now);
+    timeChart.data.datasets[0].data.push(blocked);
+    timeChart.data.datasets[1].data.push(allowed);
+    timeChart.update('none');
+    // Latency average
+    const lats=logs.filter(l=>l.latency_ms).map(l=>l.latency_ms);
+    if(lats.length) document.getElementById('stat-latency').textContent=(lats.reduce((a,b)=>a+b,0)/lats.length).toFixed(1);
+    // Render log entries
+    if(logs.length===0) return;
+    const html=logs.slice(0,30).map(l=>{
+      const riskColor=l.risk_score>80?'#ef4444':l.risk_score>50?'#f59e0b':'#22c55e';
+      return `<div class="log-entry ${l.action==='BLOCKED'?'blocked':'allowed'}">
+        <span style="color:var(--muted)">${l.timestamp}</span>
+        <span class="badge ${l.action==='BLOCKED'?'block':'allow'}">${l.action}</span>
+        <span class="${'sev-'+l.severity}" title="${l.severity}">${l.severity||''}</span>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:10px;color:var(--muted)">${l.risk_score}%</span>
+          <div class="risk-bar-wrap"><div class="risk-bar" style="width:${l.risk_score}%;background:${riskColor}"></div></div>
+        </div>
+        <span class="payload-cell" title="${(l.payload||'').replace(/"/g,'&quot;')}">${(l.attack_type||'')} — ${(l.payload||'').substring(0,60)}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('log-list').innerHTML=html;
+  }catch(e){console.error('logs',e);}
+}
+
+async function quickTest(type){
+  const payloads=PAYLOADS[type];
+  const payload=payloads[Math.floor(Math.random()*payloads.length)];
+  try{
+    await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({payload,url:'/test?q='+encodeURIComponent(payload),method:'GET'})});
+    fetchStats(); fetchLogs();
+  }catch(e){alert('WAF not reachable. Is app.py running?');}
+}
+
+// Refresh loop
+setInterval(fetchStats,3000);
+setInterval(fetchLogs,2000);
+fetchStats();fetchLogs();
+</script>
+</body>
+</html>

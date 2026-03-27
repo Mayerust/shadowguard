@@ -1,0 +1,42 @@
+# ══════════════════════════════════════════════════════════
+#  ShadowGuard — Dockerfile
+#  Build: docker build -t shadowguard .
+#  Run:   docker-compose up
+# ══════════════════════════════════════════════════════════
+
+FROM python:3.11-slim
+
+# Security: run as non-root
+RUN useradd -m -u 1000 shadowguard
+
+WORKDIR /app
+
+# Install system deps (minimal)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (Docker cache layer)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create directories and set ownership
+RUN mkdir -p logs models data/processed && \
+    chown -R shadowguard:shadowguard /app
+
+USER shadowguard
+
+EXPOSE 5000
+
+# Use Gunicorn for production
+CMD ["gunicorn", \
+     "--bind", "0.0.0.0:5000", \
+     "--workers", "2", \
+     "--threads", "4", \
+     "--timeout", "30", \
+     "--access-logfile", "logs/access.log", \
+     "--error-logfile", "logs/error.log", \
+     "app:app"]
