@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ShadowGuard — Live Demo</title>
+<title>ShadowGuard: Live Demo</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh;padding:24px}
@@ -48,23 +48,23 @@ button.primary:hover{background:#2563eb}
 </head>
 <body>
 <div class="container">
-  <div class="shield">🛡️ Protected by ShadowGuard ML-WAF</div>
+  <div class="shield">Protected by ShadowGuard ML-WAF</div>
   <h1>ShadowGuard — Live Demo</h1>
   <p class="subtitle">Every request is inspected by the hybrid ML + OWASP rule engine. Try sending malicious payloads below.</p>
 
   <div class="panel">
-    <h2>🔍 Test the WAF</h2>
+    <h2>Test the WAF</h2>
     <div class="row">
       <input type="text" id="payload-input" placeholder="Enter a search query or a known attack payload..." />
       <button class="primary" onclick="submitPayload()">Analyze</button>
     </div>
     <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Quick attack payloads:</p>
     <div class="attack-btns">
-      <button class="atk sqli"  onclick="load('sqli')">💉 SQL Injection</button>
-      <button class="atk xss"   onclick="load('xss')">⚡ XSS</button>
-      <button class="atk path"  onclick="load('path')">📁 Path Traversal</button>
-      <button class="atk cmd"   onclick="load('cmd')">⚙️ Command Injection</button>
-      <button class="atk safe"  onclick="load('safe')">✅ Safe Request</button>
+      <button class="atk sqli"  onclick="load('sqli')">SQL Injection</button>
+      <button class="atk xss"   onclick="load('xss')">XSS</button>
+      <button class="atk path"  onclick="load('path')">Path Traversal</button>
+      <button class="atk cmd"   onclick="load('cmd')">Command Injection</button>
+      <button class="atk safe"  onclick="load('safe')">Safe Request</button>
     </div>
     <div class="result" id="result-box">
       <div class="result-header" id="result-header"></div>
@@ -72,7 +72,7 @@ button.primary:hover{background:#2563eb}
     </div>
   </div>
 
-  <a href="/dashboard" class="dashboard-link">📊 Open Live Dashboard →</a>
+  <a href="/dashboard" class="dashboard-link">Open Live Dashboard →</a>
 </div>
 <script>
 const samples={
@@ -120,7 +120,7 @@ async function submitPayload(){
       ${recs}
     `;
   }catch(e){
-    header.innerHTML='❌ Error — Is the WAF running? (python app.py)';
+    header.innerHTML='Error: Is the WAF running? (python app.py)';
     header.className='result-header blocked';
     body.innerHTML=`<p style="color:#ef4444;font-size:13px">${e.message}</p>`;
   }
