@@ -1,9 +1,3 @@
-# ══════════════════════════════════════════════════════════
-#  ShadowGuard — Dockerfile
-#  Build: docker build -t shadowguard .
-#  Run:   docker-compose up
-# ══════════════════════════════════════════════════════════
-
 FROM python:3.11-slim
 
 # Security: run as non-root
