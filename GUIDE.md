@@ -400,7 +400,7 @@ docker-compose logs -f shadowguard
 docker-compose ps
 ```
 
-### Windows (PowerShell — Docker Desktop must be running)
+### Windows (PowerShell: Docker Desktop must be running)
 
 ```powershell
 cd "$env:USERPROFILE\shadowguard"
@@ -456,7 +456,7 @@ sudo apt install -y sqlmap nikto curl python3-requests
 # e.g. 192.168.1.105
 ```
 
-#### Test 1 — Automated Test Suite
+#### Test 1: Automated Test Suite
 
 ```bash
 # Copy lan_attack_test.py to Machine B
@@ -669,7 +669,7 @@ git push
 
 ---
 
-## PART 10 — TROUBLESHOOTING
+## PART 10: TROUBLESHOOTING
 
 ### "Model not found" error
 
