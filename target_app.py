@@ -5,8 +5,6 @@ from flask import Flask, request, jsonify, render_template_string
 app = Flask(__name__)
 DB_PATH = "/tmp/shadowguard_demo.db"
 
-
-
 #Init vulnerable SQLite DB
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -114,17 +112,13 @@ def index():
                                   login_result=None, file_content=None, ping_result=None)
 
 
-
-
 #INTENTIONALLY VULNERABLE: SQL Injection via string concat
 @app.route("/search")
 def search():
     q = request.args.get("q", "")
     try:
         conn = sqlite3.connect(DB_PATH)
-
-        #!!! NOT TO DO this in production
-
+        # !!! NEVER do this in production !!!
         sql = f"SELECT id, name, price, description FROM products WHERE name LIKE '%{q}%'"
         rows = conn.execute(sql).fetchall()
         conn.close()
@@ -177,10 +171,7 @@ def ping():
     host = request.args.get("host", "8.8.8.8")
     try:
         import subprocess
-        
-        
-        #VULNERABLE: direct shell injection
-
+        # !!! VULNERABLE: direct shell injection !!!
         result = subprocess.check_output(
             f"ping -c 2 {host}",
             shell=True, stderr=subprocess.STDOUT, timeout=5,
@@ -197,11 +188,11 @@ def status():
 
 
 if __name__ == "__main__":
-    print("\n" + "=" * 50)
-    print("This is a TARGET APP  (Intentionally Vulnerable)")
-    print("=" * 50)
-    print("URL: http://0.0.0.0:8080")
-    print("Deploy ShadowGuard WAF on : 5000 in front of this.")
-    print("All traffic should go through the WAF first.")
-    print("=" * 50 + "\n")
+   
+    print("TARGET APP  (Intentionally Vulnerable)")
+    
+    print("  URL: http://0.0.0.0:8080")
+    print("  Deploy ShadowGuard WAF on :5000 in front of this.")
+    print("  All traffic should go through the WAF first.")
+   
     app.run(host="0.0.0.0", port=8080, debug=False)
