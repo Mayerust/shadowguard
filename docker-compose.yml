@@ -1,4 +1,3 @@
-# docker-compose.yml: Full ShadowGuard Stack
 version: "3.9"
 
 services:
