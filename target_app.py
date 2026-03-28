@@ -1,15 +1,3 @@
-"""
-ShadowGuard — Vulnerable Target Application (Port 8080)
-=========================================================
-A deliberately vulnerable Flask app to deploy BEHIND the WAF.
-This simulates a real web application that the WAF protects.
-
-
-
-Run: python target_app.py
-Listens on: 0.0.0.0:8080
-"""
-
 import sqlite3
 import os
 from flask import Flask, request, jsonify, render_template_string
@@ -17,7 +5,9 @@ from flask import Flask, request, jsonify, render_template_string
 app = Flask(__name__)
 DB_PATH = "/tmp/shadowguard_demo.db"
 
-# ─── Init vulnerable SQLite DB ────────────────────────────────────────────
+
+
+#Init vulnerable SQLite DB
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -67,11 +57,11 @@ td{padding:8px;border-bottom:1px solid #f1f5f9;font-size:13px}
 .result-box{background:#1e293b;color:#7dd3fc;padding:12px;border-radius:6px;font-family:monospace;font-size:12px;margin-top:10px;word-break:break-all}
 </style></head>
 <body>
-<h1>🏢 Corp Internal Web App <span style="font-size:14px;color:#64748b">(Target App — Port 8080)</span></h1>
+<h1>Corp Internal Web App <span style="font-size:14px;color:#64748b">(Target App — Port 8080)</span></h1>
 <p style="color:#64748b;font-size:14px">This app is intentionally vulnerable. ShadowGuard should be protecting it.</p>
 
 <div class="panel">
-  <h3>Product Search <span class="vuln-badge">⚠️ SQLi Vulnerable</span></h3>
+  <h3>Product Search <span class="vuln-badge">SQLi Vulnerable</span></h3>
   <form action="/search" method="GET">
     <input name="q" placeholder="Search products..." value="{{query}}">
     <button>Search</button>
@@ -85,7 +75,7 @@ td{padding:8px;border-bottom:1px solid #f1f5f9;font-size:13px}
 </div>
 
 <div class="panel">
-  <h3>User Login <span class="vuln-badge">⚠️ SQLi Vulnerable</span></h3>
+  <h3>User Login <span class="vuln-badge">SQLi Vulnerable</span></h3>
   <form action="/login" method="POST">
     <input name="username" placeholder="Username">
     <input name="password" type="text" placeholder="Password">
@@ -95,7 +85,7 @@ td{padding:8px;border-bottom:1px solid #f1f5f9;font-size:13px}
 </div>
 
 <div class="panel">
-  <h3>File Viewer <span class="vuln-badge">⚠️ Path Traversal Vulnerable</span></h3>
+  <h3>File Viewer <span class="vuln-badge">Path Traversal Vulnerable</span></h3>
   <form action="/file" method="GET">
     <input name="path" placeholder="Enter file path..." value="readme.txt">
     <button>View</button>
@@ -104,7 +94,7 @@ td{padding:8px;border-bottom:1px solid #f1f5f9;font-size:13px}
 </div>
 
 <div class="panel">
-  <h3>Ping Tool <span class="vuln-badge">⚠️ Command Injection Vulnerable</span></h3>
+  <h3>Ping Tool <span class="vuln-badge">Command Injection Vulnerable</span></h3>
   <form action="/ping" method="GET">
     <input name="host" placeholder="Hostname or IP..." value="8.8.8.8">
     <button>Ping</button>
@@ -124,13 +114,17 @@ def index():
                                   login_result=None, file_content=None, ping_result=None)
 
 
-# ── INTENTIONALLY VULNERABLE: SQL Injection via string concat ──────────────
+
+
+#INTENTIONALLY VULNERABLE: SQL Injection via string concat
 @app.route("/search")
 def search():
     q = request.args.get("q", "")
     try:
         conn = sqlite3.connect(DB_PATH)
-        # !!! NEVER do this in production !!!
+
+        #!!! NOT TO DO this in production
+
         sql = f"SELECT id, name, price, description FROM products WHERE name LIKE '%{q}%'"
         rows = conn.execute(sql).fetchall()
         conn.close()
@@ -162,7 +156,7 @@ def login():
                                       query="", results=None, error=None, file_content=None, ping_result=None)
 
 
-# ── INTENTIONALLY VULNERABLE: Path Traversal ──────────────────────────────
+#INTENTIONALLY VULNERABLE: Path Traversal
 @app.route("/file")
 def file_view():
     path = request.args.get("path", "readme.txt")
@@ -177,13 +171,16 @@ def file_view():
                                       query="", results=None, error=None, login_result=None, ping_result=None)
 
 
-# ── INTENTIONALLY VULNERABLE: Command Injection ────────────────────────────
+#INTENTIONALLY VULNERABLE: Command Injection
 @app.route("/ping")
 def ping():
     host = request.args.get("host", "8.8.8.8")
     try:
         import subprocess
-        # !!! VULNERABLE: direct shell injection !!!
+        
+        
+        #VULNERABLE: direct shell injection
+
         result = subprocess.check_output(
             f"ping -c 2 {host}",
             shell=True, stderr=subprocess.STDOUT, timeout=5,
@@ -201,10 +198,10 @@ def status():
 
 if __name__ == "__main__":
     print("\n" + "=" * 50)
-    print("  🎯  TARGET APP  (Intentionally Vulnerable)")
+    print("This is a TARGET APP  (Intentionally Vulnerable)")
     print("=" * 50)
-    print("  URL: http://0.0.0.0:8080")
-    print("  Deploy ShadowGuard WAF on :5000 in front of this.")
-    print("  All traffic should go through the WAF first.")
+    print("URL: http://0.0.0.0:8080")
+    print("Deploy ShadowGuard WAF on : 5000 in front of this.")
+    print("All traffic should go through the WAF first.")
     print("=" * 50 + "\n")
     app.run(host="0.0.0.0", port=8080, debug=False)

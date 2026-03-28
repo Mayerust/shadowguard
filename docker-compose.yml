@@ -1,21 +1,9 @@
-# ══════════════════════════════════════════════════════════
-#  docker-compose.yml  — Full ShadowGuard Stack
-#
-#  Services:
-#    nginx      — Reverse proxy / SSL termination (port 80)
-#    shadowguard — ML-WAF engine (port 5000, internal)
-#    targetapp   — Vulnerable demo app (port 8080, internal)
-#
-#  Usage:
-#    docker-compose up --build
-#    Open http://<LAN-IP>/dashboard
-# ══════════════════════════════════════════════════════════
-
+# docker-compose.yml: Full ShadowGuard Stack
 version: "3.9"
 
 services:
 
-  # ── Nginx (public-facing reverse proxy) ──────────────────
+  #Nginx (public-facing reverse proxy)
   nginx:
     image: nginx:alpine
     ports:
@@ -28,7 +16,7 @@ services:
       - waf_net
     restart: unless-stopped
 
-  # ── ShadowGuard ML-WAF ────────────────────────────────────
+  #ShadowGuard ML-WAF
   shadowguard:
     build: .
     expose:
@@ -51,7 +39,7 @@ services:
     cap_drop:
       - ALL
 
-  # ── Target App (vulnerable, internal only) ────────────────
+  #Target App (vulnerable, internal only)
   targetapp:
     image: python:3.11-slim
     working_dir: /app
