@@ -69,7 +69,7 @@ Client Request
 │  │  TIER 3 — ML Gate            < 20ms          │   │
 │  │  Random Forest (58 features, F1=0.88)        │   │
 │  │  Adaptive threshold: 62%–82%                 │   │
-│  │  Handles ambiguous/obfuscated payloads        │  │
+│  │  Handles ambiguous/obfuscated payloads       │   │
 │  └──────────────────┬───────────────────────────┘   │
 │                     │ if ALLOWED                    │
 └─────────────────────┼───────────────────────────────┘
