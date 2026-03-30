@@ -40,11 +40,10 @@ services:
 
   #Target App (vulnerable, internal only)
   targetapp:
-    image: python:3.11-slim
+    build:
+      context: .
+      dockerfile: targetapp.Dockerfile
     working_dir: /app
-    volumes:
-      - ./:/app
-    command: python target_app.py
     expose:
       - "8080"
     networks:
