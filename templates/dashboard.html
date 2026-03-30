@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShadowGuard — Live Dashboard</title>
+<title>ShadowGuard: Live Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root {
@@ -103,11 +103,11 @@ body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
 
 <div class="topbar">
   <div class="logo">
-    <div class="logo-icon">🛡</div>
+    <div class="logo-icon"></div>
     SHADOWGUARD
   </div>
   <div style="display:flex;align-items:center;gap:20px;font-size:12px;color:var(--muted)">
-    <span id="model-name">Loading model...</span>
+    <span id="model-name">Loading model</span>
     <div class="status-label"><div class="status-dot"></div> OPERATIONAL</div>
     <span id="clock">00:00:00</span>
   </div>
@@ -199,8 +199,8 @@ body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
         </div>
       </div>
       <div class="ticker">
-        <span>WAF Engine: ML + OWASP Regex Hybrid</span>
-        <span>Threshold: 75%</span>
+        <span>Tier0:SafePass → Tier1:HardBlock(rules) → Tier2:SoftScore → Tier3:ML(adaptive)</span>
+        <span>ML invoked only when soft_score ≥ 4</span>
         <span id="ticker-time">—</span>
       </div>
     </div>
@@ -259,7 +259,7 @@ async function fetchStats(){
     if(s.model_info){
       document.getElementById('sb-model').textContent=s.model_info.name||'—';
       document.getElementById('sb-f1').textContent=s.model_info.f1||'—';
-      document.getElementById('model-name').textContent='Model: '+s.model_info.name;
+      document.getElementById('model-name').textContent='ML rate: '+(s.ml_invoke_rate||0)+'% | Model: '+s.model_info.name;
     }
     // Attack types sidebar
     if(s.top_attack_types){

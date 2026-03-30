@@ -1,0 +1,165 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  ShadowGuard WAF — .gitignore                               ║
+# ║                                                              ║
+# ║  SECURITY NOTE:                                              ║
+# ║  This WAF protects applications. Publishing detection        ║
+# ║  logic, trained weights, and feature extraction details      ║
+# ║  would allow adversaries to craft bypass payloads.           ║
+# ║  Files listed here are kept private deliberately.            ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+
+# ══════════════════════════════════════════════════════════════
+# CORE WAF ENGINE  — DO NOT PUBLISH (bypass risk)
+# These files contain detection logic. Exposing them allows
+# an attacker to craft inputs that score 0 on every rule.
+# ══════════════════════════════════════════════════════════════
+
+# The main application — contains all regex rules, soft score
+# thresholds, ML invocation gates, and threat DB.
+# Share only architecture diagrams and high-level descriptions.
+app.py
+
+# Target application — intentionally vulnerable app used for
+# testing. Never expose this on a public repo (it's literally
+# full of injection holes).
+target_app.py
+
+
+# ══════════════════════════════════════════════════════════════
+# TRAINED MODEL ARTIFACTS  — DO NOT PUBLISH
+# Publishing the .pkl exposes:
+#   - Feature importance rankings (what the model watches for)
+#   - Decision boundaries (what scores stay below threshold)
+#   - Weight vectors (adversarial example generation)
+# ══════════════════════════════════════════════════════════════
+models/
+!models/.gitkeep
+
+
+# ══════════════════════════════════════════════════════════════
+# DATASETS  — DO NOT PUBLISH (licensing + size)
+# CSIC 2010 has academic license restrictions.
+# Raw traffic logs may contain PII.
+# ══════════════════════════════════════════════════════════════
+data/
+!data/.gitkeep
+
+
+# ══════════════════════════════════════════════════════════════
+# RUNTIME LOGS  — DO NOT PUBLISH
+# Logs contain real IP addresses, actual attack payloads,
+# timing information, and potentially sensitive request data.
+# ══════════════════════════════════════════════════════════════
+logs/
+!logs/.gitkeep
+*.log
+*.ndjson
+
+
+# ══════════════════════════════════════════════════════════════
+# ENVIRONMENT & SECRETS
+# ══════════════════════════════════════════════════════════════
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.p12
+secrets/
+config/local.py
+config/production.py
+
+
+# ══════════════════════════════════════════════════════════════
+# PYTHON
+# ══════════════════════════════════════════════════════════════
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+
+# ══════════════════════════════════════════════════════════════
+# JUPYTER (if used for model exploration)
+# ══════════════════════════════════════════════════════════════
+.ipynb_checkpoints/
+*.ipynb
+
+
+# ══════════════════════════════════════════════════════════════
+# OS FILES
+# ══════════════════════════════════════════════════════════════
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+
+# ══════════════════════════════════════════════════════════════
+# IDE
+# ══════════════════════════════════════════════════════════════
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+
+# ══════════════════════════════════════════════════════════════
+# DOCKER VOLUMES / TEMP
+# ══════════════════════════════════════════════════════════════
+.docker/
+docker-volumes/
+*.tar
+*.gz
+tmp/
+temp/
+
+
+# ══════════════════════════════════════════════════════════════
+# WHAT IS INTENTIONALLY PUBLIC  (override above with !)
+# These files demonstrate skill without enabling bypasses:
+#   README.md         — Architecture, setup, metrics
+#   GUIDE.md          — LAN testing walkthrough
+#   Dockerfile        — Container hardening approach
+#   docker-compose.yml— Production stack design
+#   nginx/nginx.conf  — Reverse proxy configuration
+#   requirements.txt  — Technology choices
+#   01_prepare_dataset.py — Feature engineering methodology
+#   02_train_model.py     — Training pipeline (not detection logic)
+#   lan_attack_test.py    — Testing framework
+# ══════════════════════════════════════════════════════════════
+!README.md
+!GUIDE.md
+!Dockerfile
+!docker-compose.yml
+!nginx/
+!requirements.txt
+!01_prepare_dataset.py
+!02_train_model.py
+!lan_attack_test.py
+!.env.example
+!models/.gitkeep
+!data/.gitkeep
+!logs/.gitkeep
