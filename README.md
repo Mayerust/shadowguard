@@ -52,26 +52,26 @@ Client Request
 │  │  Zero attack-surface chars → ALLOW           │   │
 │  │  ~85% of legitimate traffic exits here       │   │
 │  └──────────────────┬───────────────────────────┘   │
-│                     │ if any attack chars present    │
+│                     │ if any attack chars present   │
 │  ┌──────────────────▼───────────────────────────┐   │
 │  │  TIER 1 — Hard Block         < 3ms           │   │
 │  │  25 precision regex rules (OWASP-based)      │   │
 │  │  Blocks 90%+ of real attacks here            │   │
 │  └──────────────────┬───────────────────────────┘   │
-│                     │ if no hard rule triggered      │
+│                     │ if no hard rule triggered     │
 │  ┌──────────────────▼───────────────────────────┐   │
 │  │  TIER 2 — Soft Score         < 4ms           │   │
 │  │  18 indicators accumulate suspicion points   │   │
 │  │  Score < 4 → ALLOW (no ML needed)            │   │
 │  └──────────────────┬───────────────────────────┘   │
-│                     │ if soft_score ≥ 4              │
+│                     │ if soft_score ≥ 4             │
 │  ┌──────────────────▼───────────────────────────┐   │
 │  │  TIER 3 — ML Gate            < 20ms          │   │
 │  │  Random Forest (58 features, F1=0.88)        │   │
 │  │  Adaptive threshold: 62%–82%                 │   │
-│  │  Handles ambiguous/obfuscated payloads        │   │
+│  │  Handles ambiguous/obfuscated payloads        │  │
 │  └──────────────────┬───────────────────────────┘   │
-│                     │ if ALLOWED                     │
+│                     │ if ALLOWED                    │
 └─────────────────────┼───────────────────────────────┘
                       ▼
              Target Application (Port 8080)
