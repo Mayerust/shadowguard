@@ -1,5 +1,3 @@
-
-
 import sqlite3, os, re, subprocess
 from flask import Flask, request, jsonify, render_template_string
 
@@ -119,7 +117,7 @@ def index():
     </div>""")
 
 
-#SQL Injection: Product Search
+#SQL Injection — Product Search
 @app.route("/search")
 def search():
     q = request.args.get("q", "")
@@ -141,7 +139,7 @@ def search():
 
     return page(f"""
     <div class="panel">
-      <h2>Product Search <span class="vuln">SQLi Vulnerable</span></h2>
+      <h2>Product Search <span class="vuln">⚠️ SQLi Vulnerable</span></h2>
       <form method="GET">
         <input name="q" value="{q}" placeholder="Search products...">
         <button>Search</button>
@@ -151,7 +149,7 @@ def search():
     </div>""")
 
 
-#SQL Injection: Authentication Bypass
+#SQL Injection — Authentication Bypass
 @app.route("/login", methods=["GET", "POST"])
 def login():
     result = ""
@@ -160,20 +158,20 @@ def login():
         p = request.form.get("password", "")
         try:
             conn = sqlite3.connect(DB)
-            #VULNERABLE: direct concatenation
+            # VULNERABLE: direct concatenation
             sql = f"SELECT * FROM users WHERE username='{u}' AND password='{p}'"
             row = conn.execute(sql).fetchone()
             conn.close()
             if row:
-                result = f'<div class="out">LOGIN SUCCESS\nWelcome: {row[1]}\nRole: {row[4]}\nEmail: {row[3]}</div>'
+                result = f'<div class="out">✅ LOGIN SUCCESS\nWelcome: {row[1]}\nRole: {row[4]}\nEmail: {row[3]}</div>'
             else:
-                result = '<div class="out">Login failed: invalid credentials</div>'
+                result = '<div class="out">❌ Login failed: invalid credentials</div>'
         except Exception as e:
             result = f'<div class="out">DB Error: {e}</div>'
 
     return page(f"""
     <div class="panel">
-      <h2>User Login <span class="vuln">SQLi Auth Bypass</span></h2>
+      <h2>User Login <span class="vuln">⚠️ SQLi Auth Bypass</span></h2>
       <p>Try: username=<code>admin'--</code> password=<em>anything</em></p>
       <form method="POST">
         <input name="username" placeholder="Username"><br><br>
@@ -190,7 +188,7 @@ def file_view():
     path    = request.args.get("path", "readme.txt")
     content = ""
     try:
-        #VULNERABLE: no path sanitization
+        # VULNERABLE: no path sanitization
         with open(path, "r", errors="replace") as f:
             content = f.read(3000)
     except Exception as e:
@@ -198,7 +196,7 @@ def file_view():
 
     return page(f"""
     <div class="panel">
-      <h2>File Viewer <span class="vuln">Path Traversal</span></h2>
+      <h2>File Viewer <span class="vuln">⚠️ Path Traversal</span></h2>
       <p>Try: <code>path=../../etc/passwd</code></p>
       <form method="GET">
         <input name="path" value="{path}" style="width:400px">
@@ -224,7 +222,7 @@ def ping():
 
     return page(f"""
     <div class="panel">
-      <h2>Network Ping Tool <span class="vuln">Command Injection</span></h2>
+      <h2>Network Ping Tool <span class="vuln">⚠️ Command Injection</span></h2>
       <p>Try: <code>host=8.8.8.8; id</code> or <code>host=127.0.0.1 | cat /etc/passwd</code></p>
       <form method="GET">
         <input name="host" value="{host}">
@@ -234,14 +232,14 @@ def ping():
     </div>""")
 
 
-#Reflected XSS 
+#Reflected XSS
 @app.route("/profile")
 def profile():
     name = request.args.get("name", "Guest")
-    # VULNERABLE: renders user input directly into HTML without escaping
+    #VULNERABLE: renders user input directly into HTML without escaping
     return page(f"""
     <div class="panel">
-      <h2>User Profile <span class="vuln">Reflected XSS</span></h2>
+      <h2>User Profile <span class="vuln">⚠️ Reflected XSS</span></h2>
       <p>Try: <code>name=&lt;script&gt;alert(document.cookie)&lt;/script&gt;</code></p>
       <form method="GET">
         <input name="name" value="" placeholder="Enter your name">
@@ -280,7 +278,7 @@ def comment():
 
     return page(f"""
     <div class="panel">
-      <h2>Comments Board <span class="vuln">Stored XSS</span></h2>
+      <h2>Comments Board <span class="vuln">⚠️ Stored XSS</span></h2>
       <p>Try: content=<code>&lt;img src=x onerror=alert('XSS')&gt;</code></p>
       <form method="POST">
         <input name="author" placeholder="Your name"><br><br>
@@ -300,7 +298,7 @@ def fetch_url():
     result = ""
     if url:
         try:
-            #VULNERABLE: fetches any URL including internal/cloud metadata
+            # VULNERABLE: fetches any URL including internal/cloud metadata
             with urllib.request.urlopen(url, timeout=3) as resp:
                 result = resp.read(2000).decode("utf-8", errors="replace")
         except Exception as e:
@@ -308,7 +306,7 @@ def fetch_url():
 
     return page(f"""
     <div class="panel">
-      <h2>URL Fetcher <span class="vuln">SSRF Vulnerable</span></h2>
+      <h2>URL Fetcher <span class="vuln">⚠️ SSRF Vulnerable</span></h2>
       <p>Try: <code>url=http://169.254.169.254/latest/meta-data/</code> (AWS metadata)</p>
       <p>Or: <code>url=http://localhost:8080/api/status</code> (internal service)</p>
       <form method="GET">
@@ -326,7 +324,7 @@ def xml_parse():
     if request.method == "POST":
         xml_data = request.data.decode("utf-8", errors="replace") or request.form.get("xml", "")
         try:
-            #VULNERABLE: uses defusedxml is NOT used — lxml with resolve_entities
+            # VULNERABLE: uses defusedxml is NOT used — lxml with resolve_entities
             import xml.etree.ElementTree as ET
             root   = ET.fromstring(xml_data)
             result = ET.tostring(root, encoding="unicode")
@@ -341,7 +339,7 @@ def xml_parse():
 
     return page(f"""
     <div class="panel">
-      <h2>XML Parser <span class="vuln">XXE Vulnerable</span></h2>
+      <h2>XML Parser <span class="vuln">⚠️ XXE Vulnerable</span></h2>
       <p>POST XML with external entity reference to read files</p>
       <form method="POST" enctype="text/plain">
         <textarea name="xml" rows="8" style="width:500px;font-family:monospace;font-size:12px">{sample}</textarea><br><br>
@@ -357,7 +355,7 @@ def api_users():
     role = request.args.get("role", "user")
     try:
         conn = sqlite3.connect(DB)
-        #VULNERABLE: SQL injection in API endpoint
+        # VULNERABLE: SQL injection in API endpoint
         sql  = f"SELECT id,username,email,role FROM users WHERE role='{role}'"
         rows = conn.execute(sql).fetchall()
         conn.close()
@@ -366,7 +364,7 @@ def api_users():
         return jsonify({"error": str(e)}), 500
 
 
-#Health 
+#Health
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -380,7 +378,7 @@ def status():
 
 
 if __name__ == "__main__":
-    
+ 
     print("TARGET APP  (Intentionally Vulnerable)")
     print("=" * 55)
     print("  Direct URL : http://0.0.0.0:8080  ← UNPROTECTED")

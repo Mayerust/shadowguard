@@ -137,6 +137,7 @@ _HARD_RULES = [
     #UNION SELECT together (handles /**/comments and ALL keyword)
     (re.compile(
         r"union\s*(?:\/\*.*?\*\/\s*|--[^\n]*\n)?(?:all\s+)?select\b",
+        
         re.I | re.S),
      "SQLi – UNION SELECT", "Critical", "sqli"),
 
@@ -976,3 +977,6 @@ if __name__ == "__main__":
     print(f"  Target app   : {TARGET_APP_URL}")
    
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+
+
+
