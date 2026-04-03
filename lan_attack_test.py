@@ -62,7 +62,7 @@ ATTACKS = [
      "GET", "/api/users", {"role": "admin' UNION SELECT 1,2,3,4--"},
      "BLOCKED", "sqli"),
 
-    # ── XSS ───────────────────────────────────────────────────────────────
+    #XSS
     ("XSS – Script Tag",
      "GET", "/profile", {"name": "<script>alert('XSS')</script>"},
      "BLOCKED", "xss"),
@@ -255,7 +255,7 @@ def run_compare(waf_url: str, direct_url: str, delay: float):
     Run same attacks against both WAF and direct target.
     Shows the contrast: unprotected app is vulnerable, WAF blocks.
     """
-    )
+    
     print(bold(c("cyan", "  COMPARE MODE: WAF vs Unprotected")))
     print(bold(f"  WAF    : {waf_url}"))
     print(bold(f"  Direct : {direct_url}  (no WAF, completely vulnerable)"))
@@ -351,13 +351,13 @@ def main():
     print(f"  Time       : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
    
 
-    # Compare mode: show the dramatic before/after
+    #Compare mode: show the dramatic before/after
     if args.mode == "compare":
         run_compare(base_url, direct_url, args.delay)
         run_rate_limit_test(base_url)
         return
 
-    # Filter attacks by category
+    #Filter attacks by category
     attacks = ATTACKS
     if args.category != "all":
         attacks = [a for a in ATTACKS if a[5] == args.category]
@@ -384,11 +384,11 @@ def main():
         results.append(r)
         categories.setdefault(category, []).append(r)
 
-    # Rate limit test in full mode
+    #Rate limit test in full mode
     if args.mode == "full":
         run_rate_limit_test(base_url)
 
-    # Summary
+    #Summary
     passed   = sum(1 for r in results if r["passed"])
     total    = len(results)
     attacks_blocked  = sum(1 for r in results if r["expected"] == "BLOCKED" and r["passed"])
@@ -430,7 +430,7 @@ def main():
 
     
 
-    # Save results
+    #Save results
     out = {
         "timestamp": datetime.now().isoformat(),
         "target": base_url,

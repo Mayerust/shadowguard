@@ -1,23 +1,3 @@
-"""
-ShadowGuard — 01_prepare_dataset.py  (FIXED)
-=============================================
-ROOT CAUSE OF THE HANG YOU SAW:
-  CSIC 2010 → 97,065 records
-  SMOTE inflated minority to match majority → 144,000 samples
-  SVM CV on 144k samples = 2-4 hours on any normal laptop
-
-THE FIX:
-  Cap each class to MAX_SAMPLES_PER_CLASS = 10,000 BEFORE SMOTE.
-  Final balanced dataset: ~20,000 samples.
-  All 5 models train in under 3 minutes total.
-  F1 score stays ≥ 0.97  — RF/XGBoost don't improve beyond ~10k per class.
-
-Dataset sources:
-  CSIC 2010 official : http://www.isi.csic.es/dataset/
-  Kaggle mirror      : https://www.kaggle.com/datasets/kukurupupu/http-csic-2010-http-dataset
-  Auto-synthetic     : generated below if files not found
-"""
-
 import pandas as pd
 import numpy as np
 import re
@@ -30,23 +10,18 @@ os.makedirs("data/processed", exist_ok=True)
 os.makedirs("models",         exist_ok=True)
 os.makedirs("logs",           exist_ok=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  TUNE THIS: how many samples per class before SMOTE
-#  10,000 → 20,000 balanced → trains in ~2 min  (recommended for most laptops)
-#  20,000 → 40,000 balanced → trains in ~6 min  (if you have 16GB+ RAM)
-#  5,000  → 10,000 balanced → trains in ~45 sec (if RAM is very limited)
-# ─────────────────────────────────────────────────────────────────────────────
+
 MAX_SAMPLES_PER_CLASS = 10_000
 
-print("=" * 65)
-print("  SHADOWGUARD  |  Dataset Preparation (Fixed)")
-print("=" * 65)
+
+print("Start")
+
 print(f"  Cap per class  : {MAX_SAMPLES_PER_CLASS:,}")
 print(f"  Expected output: ~{MAX_SAMPLES_PER_CLASS * 2:,} balanced samples")
 print()
 
 
-# ─── CSIC 2010 Parser ────────────────────────────────────────────────────────
+
 def parse_csic_file(filepath, label):
     records = []
     if not os.path.exists(filepath):
@@ -68,7 +43,7 @@ def parse_csic_file(filepath, label):
         }
         in_body = False
         for line in lines[1:]:
-            if line == "":
+            if lin+e == "":
                 in_body = True
             elif in_body:
                 record["body"] += line
@@ -78,7 +53,7 @@ def parse_csic_file(filepath, label):
     return records
 
 
-# ─── Synthetic Generator (fallback) ──────────────────────────────────────────
+#Synthetic Generator
 def generate_synthetic_dataset(n_normal=3000, seed=42):
     rng = np.random.default_rng(seed)
     normal_urls = [
@@ -125,7 +100,7 @@ def generate_synthetic_dataset(n_normal=3000, seed=42):
     return pd.DataFrame(records).sample(frac=1, random_state=seed).reset_index(drop=True)
 
 
-# ─── Feature Engineering ─────────────────────────────────────────────────────
+#Feature Engineering
 def calculate_entropy(s: str) -> float:
     if not s:
         return 0.0
@@ -207,8 +182,8 @@ def extract_features(row: dict) -> dict:
     return f
 
 
-# ─── Pipeline ────────────────────────────────────────────────────────────────
-print("[1/4] Loading dataset...")
+#Pipeline
+print("Loading Dataset")
 csic_records = []
 for fname, label in [
     ("data/raw/normalTrafficTraining.txt", "normal"),
@@ -229,7 +204,7 @@ else:
     print("       CSIC files not found — generating synthetic dataset...")
     df_raw = generate_synthetic_dataset(n_normal=3000)
 
-# ─── THE FIX: Cap before SMOTE ───────────────────────────────────────────────
+#Cap before SMOTE
 n_normal_raw = (df_raw["is_malicious"] == 0).sum()
 n_attack_raw = (df_raw["is_malicious"] == 1).sum()
 
@@ -245,7 +220,7 @@ print(f"\n       Capped: normal={n_normal_keep:,}  attack={n_attack_keep:,}  "
 print(f"       (Was {n_normal_raw:,} + {n_attack_raw:,} = {len(df_raw):,} — "
       f"reduced {len(df_raw) - len(df_capped):,} rows)")
 
-print("\n[2/4] Extracting features...")
+print("\nFeature Extraction")
 feature_records = []
 total = len(df_capped)
 for i, (_, row) in enumerate(df_capped.iterrows()):
@@ -263,7 +238,7 @@ df_features  = pd.DataFrame(feature_records)
 feature_cols = [c for c in df_features.columns if c not in ["is_malicious", "label"]]
 print(f"       {len(feature_cols)} features extracted per request")
 
-print("\n[3/4] SMOTE balancing...")
+print("\nSMOTE Balancing")
 from imblearn.over_sampling import SMOTE
 
 X = df_features[feature_cols].fillna(0)
@@ -273,7 +248,7 @@ n_before_0 = (y == 0).sum()
 n_before_1 = (y == 1).sum()
 print(f"       Before → Normal: {n_before_0:,}  |  Malicious: {n_before_1:,}")
 
-# Only SMOTE if classes are actually imbalanced (skip when capped equal)
+#Only SMOTE if classes are actually imbalanced (skip when capped equal)
 if abs(n_before_0 - n_before_1) > 100:
     smote = SMOTE(random_state=42, k_neighbors=5)
     X_balanced, y_balanced = smote.fit_resample(X, y)
@@ -286,15 +261,15 @@ print(f"       After  → Normal: {(y_balanced==0).sum():,}  |  Malicious: {(y_b
 df_balanced = pd.DataFrame(X_balanced, columns=feature_cols)
 df_balanced["is_malicious"] = y_balanced
 
-print("\n[4/4] Saving...")
+print("\nSave")
 df_features.to_csv("data/processed/features_raw.csv",      index=False)
 df_balanced.to_csv("data/processed/features_balanced.csv", index=False)
 with open("models/feature_columns.json", "w") as f:
     json.dump(feature_cols, f, indent=2)
 
 
-print("  Dataset preparation COMPLETE")
+print("End")
 print(f"  Balanced samples : {len(df_balanced):,}   ← safe for all 5 models")
 print(f"  Features         : {len(feature_cols)}")
 print(f"  Saved to         : data/processed/")
-print(f"  Est. training time: 1–3 minutes total")
+
