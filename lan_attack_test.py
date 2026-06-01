@@ -5,6 +5,8 @@ import sys
 import threading
 from datetime import datetime
 
+#print ("Start")
+
 try:
     import requests
     requests.packages.urllib3.disable_warnings()
@@ -28,8 +30,7 @@ def dim(t):         return c("dim", t)
 
 
 
-#ATTACK DEFINITIONS
-#Each entry: (name, method, path, params_or_data, expected, category)
+
 
 ATTACKS = [
 
@@ -234,31 +235,27 @@ def run_test(base_url: str, name: str, method: str, path: str,
         except Exception:
             pass
 
-        print(f"  {c(col, symbol)} {name:<42} → {c(col, actual):20} "
+        print(f"{c(col, symbol)} {name:<42} → {c(col, actual):20} "
               f"HTTP {status}{tier_info}")
         time.sleep(delay)
         return {"name": name, "category": category, "expected": expected,
                 "actual": actual, "passed": passed, "status": status}
 
     except requests.exceptions.ConnectionError:
-        print(f"  {c('red','✗')} {name:<42} → {c('red','CONNECTION REFUSED')}")
+        print(f"{c('red','✗')} {name:<42} → {c('red','CONNECTION REFUSED')}")
         return {"name": name, "category": category, "expected": expected,
                 "actual": "ERROR", "passed": False, "status": 0}
     except Exception as e:
-        print(f"  {c('red','✗')} {name:<42} → {c('red', f'ERROR: {e}')}")
+        print(f"{c('red','✗')} {name:<42} → {c('red', f'ERROR: {e}')}")
         return {"name": name, "category": category, "expected": expected,
                 "actual": "ERROR", "passed": False, "status": 0}
 
 
 def run_compare(waf_url: str, direct_url: str, delay: float):
-    """
-    Run same attacks against both WAF and direct target.
-    Shows the contrast: unprotected app is vulnerable, WAF blocks.
-    """
     
-    print(bold(c("cyan", "  COMPARE MODE: WAF vs Unprotected")))
-    print(bold(f"  WAF    : {waf_url}"))
-    print(bold(f"  Direct : {direct_url}  (no WAF, completely vulnerable)"))
+    print(bold(c("cyan", "COMPARE MODE: WAF vs Unprotected")))
+    print(bold(f" WAF: {waf_url}"))
+    print(bold(f" Direct: {direct_url}  (no WAF, completely vulnerable)"))
     
 
     compare_attacks = [
@@ -287,31 +284,31 @@ def run_compare(waf_url: str, direct_url: str, delay: float):
             waf_blocked    = r_waf.status_code in (403, 429)
             direct_blocked = r_direct.status_code in (403, 429)
 
-            waf_str    = c("green", f"BLOCKED ({r_waf.status_code})") if waf_blocked else c("red", f"ALLOWED ({r_waf.status_code})")
+            waf_str    = c("green",f"BLOCKED ({r_waf.status_code})") if waf_blocked else c("red", f"ALLOWED ({r_waf.status_code})")
             direct_str = c("red", f"ALLOWED ({r_direct.status_code}) ← VULNERABLE") if not direct_blocked else c("yellow", "Blocked")
 
-            print(f"\n  {bold(name)}")
-            print(f"    WAF    : {waf_str}")
-            print(f"    Direct : {direct_str}")
+            print(f"\n {bold(name)}")
+            print(f" WAF: {waf_str}")
+            print(f" Direct: {direct_str}")
 
             #For SQLi auth bypass, show what the direct app actually returns
             if name == "SQLi – Auth Bypass" and not direct_blocked:
                 try:
                     if "SUCCESS" in r_direct.text:
-                        print(c("red", "    ⚠️  DIRECT APP: Authentication BYPASSED — logged in as admin without password!"))
+                        print(c("red", "DIRECT APP: Authentication BYPASSED: logged in as admin without password!"))
                 except Exception:
                     pass
 
         except Exception as e:
-            print(f"  Error on {name}: {e}")
+            print(f"Error on {name}: {e}")
         time.sleep(delay)
 
 
 def run_rate_limit_test(base_url: str):
-    """Test that rate limiting kicks in after 30 req/10s."""
-    print(bold(f"\n{'─'*50}"))
-    print(bold("  Rate Limit Test"))
-    print(f"  Sending 40 requests rapidly...")
+ 
+    #print(bold(f"\n{'─'*50}"))
+    print(bold("Rate Limit Test"))
+    print(f"Sending 40 requests rapidly")
     results = {}
     for i in range(1, 41):
         try:
@@ -323,9 +320,9 @@ def run_rate_limit_test(base_url: str):
             results["error"] = results.get("error", 0) + 1
     print(f"  Status code distribution: {results}")
     if 429 in results:
-        print(c("green", f"  ✓ Rate limiter triggered: {results[429]} requests got 429"))
+        print(c("green", f"Rate limiter triggered: {results[429]} requests got 429"))
     else:
-        print(c("yellow", "  ─ No 429s seen (might need faster sending or lower threshold)"))
+        print(c("yellow", ": No 429s seen (might need faster sending or lower threshold)"))
 
 
 def main():
@@ -346,9 +343,9 @@ def main():
     
     print(bold(c("cyan", "ShadowGuard: LAN Attack Test Suite")))
     
-    print(f"  WAF target : {c('cyan', base_url)}")
-    print(f"  Mode       : {args.mode}")
-    print(f"  Time       : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"WAF target: {c('cyan', base_url)}")
+    print(f"Mode: {args.mode}")
+    print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
    
 
     #Compare mode: show the dramatic before/after
@@ -397,17 +394,17 @@ def main():
     false_negatives  = sum(1 for r in results if r["expected"] == "BLOCKED"  and not r["passed"])
 
     
-    print(bold(f"  RESULTS"))
+    print(bold(f"RESULTS"))
     
-    print(f"  Total Tests         : {total}")
-    print(f"  Passed              : {c('green', passed)} / {total}  "
+    print(f"Total Tests: {total}")
+    print(f"Passed: {c('green', passed)} / {total}  "
           f"({passed/total*100:.1f}%)")
-    print(f"  Attacks Blocked     : {c('green', attacks_blocked)}")
-    print(f"  Safe Requests Passed: {c('green', safe_passed)}")
-    print(f"  False Positives     : {c('red' if false_positives else 'green', false_positives)}  "
-          f"← safe requests wrongly blocked")
-    print(f"  False Negatives     : {c('red' if false_negatives else 'green', false_negatives)}  "
-          f"← attacks that got through")
+    print(f"Attacks Blocked: {c('green', attacks_blocked)}")
+    print(f"Safe Requests Passed: {c('green', safe_passed)}")
+    print(f"False Positives: {c('red' if false_positives else 'green', false_positives)}  "
+          f"safe requests wrongly blocked")
+    print(f"False Negatives: {c('red' if false_negatives else 'green', false_negatives)}  "
+          f"attacks that got through")
     print()
 
     for cat, cat_results in categories.items():
@@ -415,12 +412,12 @@ def main():
         t   = len(cat_results)
         bar = "█" * p + "░" * (t - p)
         col = "green" if p == t else "yellow" if p >= t * 0.7 else "red"
-        print(f"  {cat:<10} {c(col, bar)} {p}/{t}")
+        print(f" {cat:<10} {c(col, bar)} {p}/{t}")
 
     
 
     if false_positives == 0 and false_negatives == 0:
-        print(c("green", bold("  PERFECT — WAF blocked all attacks, passed all safe requests. 🛡️")))
+        print(c("green", bold("PERFECT! WAF blocked all attacks, passed all safe requests.")))
     elif false_positives > 0:
         print(c("yellow", f"{false_positives} safe request(s) wrongly blocked. "
                           f"Check WAF threshold or rule tuning."))

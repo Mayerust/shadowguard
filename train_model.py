@@ -28,24 +28,29 @@ import joblib
 warnings.filterwarnings("ignore")
 
 
-print("Model Training Module")
+#print("Start")
+
 
 
 #Load Data
-print("\n Loading balanced dataset...")
+print("\n Dataset Loading")
 df = pd.read_csv("data/processed/features_balanced.csv")
 with open("models/feature_columns.json") as f:
     feature_cols = json.load(f)
 
 X = df[feature_cols].fillna(0)
 y = df["is_malicious"]
-print(f"       Samples: {len(X):,} | Features: {len(feature_cols)}")
-print(f"       Class balance: {dict(y.value_counts())}")
+print(f"Samples: {len(X):,} | Features: {len(feature_cols)}")
+print(f"Class balance: {dict(y.value_counts())}")
+
+
 
 #Train / Test Split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
+
+
 
 #Model Definitions
 models = {
@@ -72,6 +77,8 @@ models = {
         )),
     ]),
 }
+
+
 
 #5-Fold Cross-Validation
 print("\n Running 5-fold cross-validation on all models")
@@ -101,13 +108,17 @@ for name, pipe in models.items():
           f"Recall={r['recall']:.4f} | F1={r['f1']:.4f} ± {r['std_f1']:.4f} | "
           f"AUC={r['roc_auc']:.4f} | Time={elapsed:.1f}s")
 
+
+
 #Select Best Model
 best_name = max(cv_results, key=lambda n: cv_results[n]["f1"])
 best_pipe = models[best_name]
 print(f"\n Winner: {best_name} (F1 = {cv_results[best_name]['f1']:.4f})")
 
-#Hyperparameter Tuning (GridSearchCV)
-print(f"\n Tuning hyperparameters for {best_name}...")
+
+
+#Hyperparameter Tuning
+print(f"\n Tuning hyperparameters for {best_name}")
 
 param_grids = {
     "Random Forest": {
@@ -141,14 +152,14 @@ if param_grid:
     )
     grid_search.fit(X_train, y_train)
     final_model = grid_search.best_estimator_
-    print(f"       Best params: {grid_search.best_params_}")
-    print(f"       Best CV F1:  {grid_search.best_score_:.4f}")
+    print(f"Best params: {grid_search.best_params_}")
+    print(f"Best CV F1:  {grid_search.best_score_:.4f}")
 else:
     best_pipe.fit(X_train, y_train)
     final_model = best_pipe
 
 #Final Evaluation
-print("\n Final evaluation on held-out test set")
+print("\n Final evaluation on heldout test set")
 y_pred = final_model.predict(X_test)
 y_proba = final_model.predict_proba(X_test)[:, 1]
 
@@ -161,14 +172,16 @@ metrics = {
 }
 cm = confusion_matrix(y_test, y_pred)
 
-print(f"\n   FINAL METRICS ({best_name})")
-print(f"   {'─'*40}")
+print(f"\n Final Mertrics ({best_name})")
+
 for k, v in metrics.items():
     bar = "█" * int(v * 30)
     print(f"   {k:<12}: {v:.4f}  {bar}")
-print(f"\n   Confusion Matrix:")
-print(f"   TN={cm[0,0]:5}  FP={cm[0,1]:5}")
-print(f"   FN={cm[1,0]:5}  TP={cm[1,1]:5}")
+print(f"\n Confusion Matrix:")
+print(f"TN={cm[0,0]:5}  FP={cm[0,1]:5}")
+print(f"FN={cm[1,0]:5}  TP={cm[1,1]:5}")
+
+
 
 #Save Artifacts
 print("\n Saving model artifacts")
@@ -186,16 +199,22 @@ training_report = {
 with open("models/training_report.json", "w") as f:
     json.dump(training_report, f, indent=2)
 
+
+
 #Plots
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-fig.suptitle(f"ShadowGuard — {best_name} Performance", fontsize=14, fontweight="bold")
+fig.suptitle(f"ShadowGuard: {best_name} Performance", fontsize=14, fontweight="bold")
 
-# Confusion matrix
+
+
+#Confusion matrix
 disp = ConfusionMatrixDisplay(cm, display_labels=["Normal", "Attack"])
 disp.plot(ax=axes[0], colorbar=False, cmap="Blues")
 axes[0].set_title("Confusion Matrix")
 
-# CV model comparison
+
+
+#CV model comparison
 names = list(cv_results.keys())
 f1s = [cv_results[n]["f1"] for n in names]
 colors = ["#ef4444" if n == best_name else "#64748b" for n in names]
@@ -204,9 +223,11 @@ axes[1].set_xlim(0, 1)
 axes[1].set_xlabel("F1 Score")
 axes[1].set_title("Model Comparison (CV F1)")
 for i, v in enumerate(f1s):
-    axes[1].text(v + 0.01, i, f"{v:.4f}", va="center", fontsize=9)
+    axes[1].text(v + 0.01, i, f"{v:.4f}", va="center", fontsize=9
+    
 
-# Metrics bar chart
+
+#Metrics bar chart
 met_keys = list(metrics.keys())
 met_vals = list(metrics.values())
 bar_colors = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"]
@@ -222,9 +243,9 @@ plt.savefig("models/training_report.png", dpi=150, bbox_inches="tight")
 
 
 print("Done!")
-print(f"  Model:          models/shadowguard_model.pkl")
-print(f"  Report JSON:    models/training_report.json")
-print(f"  Report Chart:   models/training_report.png")
-print(f"  Best Model:     {best_name}")
-print(f"  F1 Score:       {metrics['f1']}")
-print(f"  AUC-ROC:        {metrics['roc_auc']}")
+print(f"Model: models/shadowguard_model.pkl")
+print(f"Report JSON: models/training_report.json")
+print(f"Report Chart:models/training_report.png")
+print(f"Best Model: {best_name}")
+print(f"F1 Score: {metrics['f1']}")
+print(f"AUC-ROC: {metrics['roc_auc']}")

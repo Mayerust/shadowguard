@@ -14,10 +14,10 @@ os.makedirs("logs",           exist_ok=True)
 MAX_SAMPLES_PER_CLASS = 10_000
 
 
-print("Start")
+#print("Start")
 
-print(f"  Cap per class  : {MAX_SAMPLES_PER_CLASS:,}")
-print(f"  Expected output: ~{MAX_SAMPLES_PER_CLASS * 2:,} balanced samples")
+print(f"Cap per class: {MAX_SAMPLES_PER_CLASS:,}")
+print(f"Expected output: ~{MAX_SAMPLES_PER_CLASS * 2:,} balanced samples")
 print()
 
 
@@ -43,7 +43,7 @@ def parse_csic_file(filepath, label):
         }
         in_body = False
         for line in lines[1:]:
-            if lin+e == "":
+            if line == "":
                 in_body = True
             elif in_body:
                 record["body"] += line
@@ -141,6 +141,7 @@ def extract_features(row: dict) -> dict:
     sql_kw = (r'\b(union|select|insert|update|delete|drop|create|alter|exec|execute|'
               r'cast|convert|declare|table|from|where|having|order|group|by|or|and|'
               r'not|null|sleep|benchmark|load_file)\b')
+    
     f["sql_keyword_count"]    = len(re.findall(sql_kw, pl))
     f["has_sql_comment"]      = int(bool(re.search(r'(--|\/\*|\*\/|#)', payload)))
     f["has_tautology"]        = int(bool(re.search(r"('|\")?\s*(or|and)\s+\d+=\d+", pl)))
@@ -183,7 +184,7 @@ def extract_features(row: dict) -> dict:
 
 
 #Pipeline
-print("Loading Dataset")
+print("Dataset Loading")
 csic_records = []
 for fname, label in [
     ("data/raw/normalTrafficTraining.txt", "normal"),
@@ -193,15 +194,15 @@ for fname, label in [
     parsed = parse_csic_file(fname, label)
     csic_records.extend(parsed)
     if parsed:
-        print(f"       {len(parsed):>6,} records  ← {fname}")
+        print(f"{len(parsed):>6,} records  ← {fname}")
 
 if csic_records:
     df_raw = pd.DataFrame(csic_records)
     df_raw["is_malicious"] = (df_raw["label"] != "normal").astype(int)
     raw_dist = df_raw["is_malicious"].value_counts().to_dict()
-    print(f"       CSIC total: {len(df_raw):,}  |  distribution: {raw_dist}")
+    print(f"CSIC total: {len(df_raw):,}  |  distribution: {raw_dist}")
 else:
-    print("       CSIC files not found — generating synthetic dataset...")
+    print("CSIC files not found: generating synthetic dataset")
     df_raw = generate_synthetic_dataset(n_normal=3000)
 
 #Cap before SMOTE
@@ -215,9 +216,9 @@ df_normal = df_raw[df_raw["is_malicious"] == 0].sample(n_normal_keep, random_sta
 df_attack = df_raw[df_raw["is_malicious"] == 1].sample(n_attack_keep, random_state=42)
 df_capped = pd.concat([df_normal, df_attack]).sample(frac=1, random_state=42).reset_index(drop=True)
 
-print(f"\n       Capped: normal={n_normal_keep:,}  attack={n_attack_keep:,}  "
+print(f"\n Capped: normal={n_normal_keep:,}  attack={n_attack_keep:,}  "
       f"total={len(df_capped):,}")
-print(f"       (Was {n_normal_raw:,} + {n_attack_raw:,} = {len(df_raw):,} — "
+print(f"(Was {n_normal_raw:,} + {n_attack_raw:,} = {len(df_raw):,} — "
       f"reduced {len(df_raw) - len(df_capped):,} rows)")
 
 print("\nFeature Extraction")
@@ -230,9 +231,9 @@ for i, (_, row) in enumerate(df_capped.iterrows()):
         print(f"       [{bar}] {i:>6,}/{total:,}  {pct:.0f}%", end="\r")
     feats = extract_features(row.to_dict())
     feats["is_malicious"] = row["is_malicious"]
-    feats["label"]        = row.get("label", "unknown")
+    feats["label"] = row.get("label", "unknown")
     feature_records.append(feats)
-print(f"       [{'█'*20}] {total:,}/{total:,}  100%   ")
+print(f"[{'█'*20}] {total:,}/{total:,}  100%")
 
 df_features  = pd.DataFrame(feature_records)
 feature_cols = [c for c in df_features.columns if c not in ["is_malicious", "label"]]
@@ -246,17 +247,17 @@ y = df_features["is_malicious"]
 
 n_before_0 = (y == 0).sum()
 n_before_1 = (y == 1).sum()
-print(f"       Before → Normal: {n_before_0:,}  |  Malicious: {n_before_1:,}")
+print(f"Before → Normal: {n_before_0:,}  |  Malicious: {n_before_1:,}")
 
-#Only SMOTE if classes are actually imbalanced (skip when capped equal)
+
 if abs(n_before_0 - n_before_1) > 100:
     smote = SMOTE(random_state=42, k_neighbors=5)
     X_balanced, y_balanced = smote.fit_resample(X, y)
 else:
     X_balanced, y_balanced = X.values, y.values
-    print("       Classes already balanced — skipping SMOTE")
+    print("Classes already balanced: skipping SMOTE")
 
-print(f"       After  → Normal: {(y_balanced==0).sum():,}  |  Malicious: {(y_balanced==1).sum():,}")
+print(f"After → Normal: {(y_balanced==0).sum():,}  |  Malicious: {(y_balanced==1).sum():,}")
 
 df_balanced = pd.DataFrame(X_balanced, columns=feature_cols)
 df_balanced["is_malicious"] = y_balanced
@@ -268,8 +269,8 @@ with open("models/feature_columns.json", "w") as f:
     json.dump(feature_cols, f, indent=2)
 
 
-print("End")
-print(f"  Balanced samples : {len(df_balanced):,}   ← safe for all 5 models")
-print(f"  Features         : {len(feature_cols)}")
-print(f"  Saved to         : data/processed/")
+#print("End")
+print(f"Balanced samples : {len(df_balanced):,}   ←  safe for all 5 models")
+print(f"Features         : {len(feature_cols)}")
+print(f"Saved to         : data/processed/")
 
