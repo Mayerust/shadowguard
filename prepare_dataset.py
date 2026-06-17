@@ -11,14 +11,23 @@ os.makedirs("models",         exist_ok=True)
 os.makedirs("logs",           exist_ok=True)
 
 
-MAX_SAMPLES_PER_CLASS = 10_000
+MAX_SAMPLES_PER_CLASS = 10_000 #capping due to low RAM. You can always increase this if you have a higher RAM and a more varied dataset
 
 
 #print("Start")
 
-print(f"Cap per class: {MAX_SAMPLES_PER_CLASS:,}")
-print(f"Expected output: ~{MAX_SAMPLES_PER_CLASS * 2:,} balanced samples")
-print()
+#print(f"Cap per class: {MAX_SAMPLES_PER_CLASS:,}")
+#print(f"Expected output: ~{MAX_SAMPLES_PER_CLASS * 2:,} balanced samples")
+#print()
+
+
+#how are we storing http requests? Dataset contains http requests like this:  GET /index.php?id=10 HTTP/1.1User-Agent: Mozilla/5.0
+#we parse it and store it in records list: {
+#    "method": "GET",
+#    "url": "/index.php?id=10",
+#    "user_agent": "Mozilla/5.0",
+#    "is_malicious": 0
+#}
 
 
 
@@ -40,7 +49,12 @@ def parse_csic_file(filepath, label):
             "url":          first[1] if len(first) > 1 else "/",
             "body":         "",
             "user_agent":   "",
-        }
+     
+        }#this is for each request, creating one dictionary per http request
+
+        #we parse each request and store their values as a dictionary, which is natural to thier status and then we store them to the records list.
+        #http requests naturally have key:value fields. records["url"] is much easier to extract than records[0] or records[1]
+
         in_body = False
         for line in lines[1:]:
             if line == "":
@@ -55,7 +69,7 @@ def parse_csic_file(filepath, label):
 
 #Synthetic Generator
 def generate_synthetic_dataset(n_normal=3000, seed=42):
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(seed) #not a TRNG, you can use good True PRNGs via imports
     normal_urls = [
         "/index.php?id={}", "/shop?cat={}&page={}", "/user/profile?uid={}",
         "/search?q=python+tutorial", "/api/products?limit=10&offset={}",
@@ -247,7 +261,7 @@ y = df_features["is_malicious"]
 
 n_before_0 = (y == 0).sum()
 n_before_1 = (y == 1).sum()
-print(f"Before → Normal: {n_before_0:,}  |  Malicious: {n_before_1:,}")
+print(f"Before -> Normal: {n_before_0:,}  |  Malicious: {n_before_1:,}")
 
 
 if abs(n_before_0 - n_before_1) > 100:
@@ -257,7 +271,7 @@ else:
     X_balanced, y_balanced = X.values, y.values
     print("Classes already balanced: skipping SMOTE")
 
-print(f"After → Normal: {(y_balanced==0).sum():,}  |  Malicious: {(y_balanced==1).sum():,}")
+print(f"After -> Normal: {(y_balanced==0).sum():,}  |  Malicious: {(y_balanced==1).sum():,}")
 
 df_balanced = pd.DataFrame(X_balanced, columns=feature_cols)
 df_balanced["is_malicious"] = y_balanced
@@ -270,7 +284,7 @@ with open("models/feature_columns.json", "w") as f:
 
 
 #print("End")
-print(f"Balanced samples : {len(df_balanced):,}   ←  safe for all 5 models")
+print(f"Balanced samples : {len(df_balanced):,}   <-  safe for all 5 models")
 print(f"Features         : {len(feature_cols)}")
 print(f"Saved to         : data/processed/")
 
